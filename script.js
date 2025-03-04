@@ -1,60 +1,50 @@
-document.addEventListener("DOMContentLoaded", function () {
-    console.log("JavaScript Loaded!");
+async function convertAudio() {
+    const fileInput = document.getElementById("audioInput");
+    const outputText = document.getElementById("outputText");
+    const loading = document.getElementById("loading");
 
-    updateDateTime(); // تحديث الوقت عند تحميل الصفحة
-    setInterval(updateDateTime, 1000); // تحديث الوقت كل ثانية
+    if (!fileInput.files.length) {
+        alert("يرجى اختيار ملف صوتي!");
+        return;
+    }
 
-    displaySchedule(); // عرض الجدول بناءً على اليوم الحالي
-});
+    loading.style.display = "block";
+    outputText.innerText = "جاري المعالجة...";
 
-// تحديث الوقت والتاريخ
-function updateDateTime() {
-    let now = new Date();
-    let dayName = now.toLocaleDateString("en-US", { weekday: "long" }); 
-    let timeString = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
 
-    console.log("Today is:", dayName);
-    console.log("Current Time:", timeString);
-
-    document.getElementById("current-day").innerText = Today: ${dayName};
-    document.getElementById("current-time").innerText = Time: ${timeString};
-}
-
-// بيانات الجدول الدراسي
-const schedule = {
-    "Saturday": [{ course: "Pathology", type: "Sec", group: "7", time: "08:00 - 10:00", room: "B122" }],
-    "Sunday": [{ course: "Oral Biology", type: "Sec", group: "4", time: "08:00 - 10:00", room: "B103" }],
-    "Monday": [{ course: "Biochemistry", type: "Sec", group: "8", time: "08:00 - 10:00", room: "B129" }],
-    "Tuesday": [{ course: "H-Anatomy", type: "Lec", group: "E", time: "08:00 - 10:00", room: "B002" }],
-    "Thursday": [{ course: "Ethics", type: "Lec", group: "A", time: "15:00 - 16:00", room: "Online" }]
-};
-
-// عرض الجدول حسب اليوم الحالي
-function displaySchedule() {
-    let now = new Date();
-    let today = now.toLocaleDateString("en-US", { weekday: "long" });
-
-    let scheduleContainer = document.getElementById("classes-list");
-    scheduleContainer.innerHTML = ""; // مسح القديم
-
-    let todaysClasses = schedule[today] || [];
-
-    if (todaysClasses.length === 0) {
-        scheduleContainer.innerHTML = "<p>No classes today!</p>";
-    } else {
-        todaysClasses.forEach((cls) => {
-            let classDiv = document.createElement("div");
-            classDiv.classList.add("class-item");
-            classDiv.innerHTML = `
-                <h3>${cls.course} (${cls.type})</h3>
-                <p>Group: ${cls.group}</p>
-                <p>Time: ${cls.time}</p>
-                <p>Room: ${cls.room}</p>
-            `;
-            scheduleContainer.appendChild(classDiv);
+    try {
+        const apiKey = "YOUR_API_KEY"; // ضع مفتاح API هنا
+        const response = await fetch(https://api.speech-to-text.com/v1/recognize?key=${apiKey}, {
+            method: "POST",
+            body: formData
         });
 
-        // تنبيه عند وجود محاضرات
-        alert(You have a class today: ${todaysClasses[0].course} at ${todaysClasses[0].time});
+        const data = await response.json();
+        let text = data.text || "لم يتم التعرف على النص.";
+
+        text = formatText(text);
+
+        outputText.innerText = text;
+    } catch (error) {
+        outputText.innerText = "حدث خطأ أثناء التحويل!";
     }
+
+    loading.style.display = "none";
+}
+
+function formatText(text) {
+    // حذف الكلمات غير المهمة
+    const fillerWords = ["يعني", "اممم", "آه", "اه", "تمام", "مثلا", "يعني هو", "طيب"];
+    fillerWords.forEach(word => {
+        const regex = new RegExp("\\b" + word + "\\b", "gi");
+        text = text.replace(regex, "");
+    });
+
+    // إضافة فواصل وفقًا للطريقة الأكاديمية
+    text = text.replace(/\.\s+/g, ".\n");
+    text = text.replace(/،\s+/g, "،\n");
+
+    return text.trim();
 }
